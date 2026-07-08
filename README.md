@@ -24,7 +24,9 @@ npm run dev
 ```
 
 Ver [docs/firebase-setup.md](docs/firebase-setup.md) para la configuración completa de Firestore
-(reglas de seguridad, estructura de datos, cómo crear profesores y administradores).
+(reglas de seguridad, estructura de datos, cómo crear profesores y administradores), y
+[docs/deploy.md](docs/deploy.md) para cómo y cuándo se actualiza cada despliegue (producción vs.
+demo pública).
 
 ## Scripts
 
