@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import { Printer } from "lucide-react";
-import { useAdminMonthlySummaries, useAdminStudents, useAdminTeacherProfile } from "../../hooks/useAdminTeacherData";
-import { LevelBadge } from "../students/LevelBadge";
+import {
+  useAdminMonthlySummaries,
+  useAdminPackProgressesForMonth,
+  useAdminPackTimelines,
+  useAdminStudents,
+  useAdminTeacherProfile,
+} from "../../hooks/useAdminTeacherData";
+import { StudentSummaryRow } from "../students/StudentSummaryRow";
 import { MonthSwitcher, type MonthCursor } from "../shared/MonthSwitcher";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -20,10 +26,18 @@ export function AdminPaymentsSummary({ teacherId }: { teacherId: string }) {
   });
 
   const summaries = useAdminMonthlySummaries(teacherId, students, monthCursor.year, monthCursor.month);
+  const packProgresses = useAdminPackProgressesForMonth(teacherId, students, monthCursor.year, monthCursor.month);
+  const packTimelines = useAdminPackTimelines(teacherId, students);
+  const rows = summaries.map(({ student, summary }, index) => ({
+    student,
+    summary,
+    packProgress: packProgresses[index]?.packProgress,
+    packTimeline: packTimelines[index]?.timeline,
+  }));
 
   const totals = useMemo(
     () =>
-      summaries.reduce(
+      rows.reduce(
         (acc, { summary }) => {
           if (!summary) return acc;
           return {
@@ -35,7 +49,7 @@ export function AdminPaymentsSummary({ teacherId }: { teacherId: string }) {
         },
         { hoursTaught: 0, consumed: 0, cancelled: 0, income: 0 },
       ),
-    [summaries, pricePerClass],
+    [rows, pricePerClass],
   );
 
   return (
@@ -58,11 +72,13 @@ export function AdminPaymentsSummary({ teacherId }: { teacherId: string }) {
         <Card className="p-8 text-center text-sm text-slate-500">Este profesor todavía no tiene alumnos.</Card>
       ) : (
         <Card className="overflow-x-auto p-5 print:border-none print:shadow-none">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[920px] text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
                 <th className="py-2 pr-4 font-medium">Alumno</th>
                 <th className="py-2 pr-4 font-medium">Nivel</th>
+                <th className="py-2 pr-4 font-medium">Bono actual</th>
+                <th className="py-2 pr-4 font-medium">Actividad de bonos</th>
                 <th className="py-2 pr-4 text-right font-medium">Horas impartidas</th>
                 <th className="py-2 pr-4 text-right font-medium">Clases agendadas</th>
                 <th className="py-2 pr-4 text-right font-medium">Clases canceladas</th>
@@ -70,24 +86,23 @@ export function AdminPaymentsSummary({ teacherId }: { teacherId: string }) {
               </tr>
             </thead>
             <tbody>
-              {summaries.map(({ student, summary }) => (
-                <tr key={student.id} className="border-b border-slate-100 last:border-0">
-                  <td className="py-3 pr-4 font-medium text-slate-800">{student.name}</td>
-                  <td className="py-3 pr-4">
-                    <LevelBadge level={student.level} />
-                  </td>
-                  <td className="py-3 pr-4 text-right tabular-nums text-slate-700">{summary?.hoursTaught ?? "…"}</td>
-                  <td className="py-3 pr-4 text-right tabular-nums text-slate-500">{summary?.consumed ?? "…"}</td>
-                  <td className="py-3 pr-4 text-right tabular-nums text-slate-500">{summary?.cancelled ?? "…"}</td>
-                  <td className="py-3 text-right tabular-nums text-slate-700">
-                    {summary ? formatCurrency(summary.billableHours * pricePerClass) : "…"}
-                  </td>
-                </tr>
+              {rows.map(({ student, summary, packProgress, packTimeline }) => (
+                <StudentSummaryRow
+                  key={student.id}
+                  student={student}
+                  summary={summary}
+                  packProgress={packProgress}
+                  packTimeline={packTimeline}
+                  year={monthCursor.year}
+                  month={monthCursor.month}
+                  pricePerClass={pricePerClass}
+                  linkToDetail={false}
+                />
               ))}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-slate-200 text-sm font-semibold text-slate-800">
-                <td className="py-3 pr-4" colSpan={2}>
+                <td className="py-3 pr-4" colSpan={4}>
                   Total
                 </td>
                 <td className="py-3 pr-4 text-right tabular-nums">{round2(totals.hoursTaught)}</td>

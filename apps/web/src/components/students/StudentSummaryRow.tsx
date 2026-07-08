@@ -14,6 +14,7 @@ export function StudentSummaryRow({
   year,
   month,
   pricePerClass,
+  linkToDetail = true,
 }: {
   student: Student;
   summary: MonthlySummary | undefined;
@@ -22,6 +23,8 @@ export function StudentSummaryRow({
   year: number;
   month: number;
   pricePerClass: number;
+  /** False for the admin payments table, where there's no /alumnos/:id route for another teacher's student. */
+  linkToDetail?: boolean;
 }) {
   const income = summary ? summary.billableHours * pricePerClass : undefined;
   const currentPack = packProgress ? getCurrentPack(packProgress) : undefined;
@@ -29,9 +32,13 @@ export function StudentSummaryRow({
   return (
     <tr className="border-b border-slate-100 last:border-0">
       <td className="py-3 pr-4">
-        <Link to={`/alumnos/${student.id}`} className="font-medium text-slate-800 hover:text-brand-600">
-          {student.name}
-        </Link>
+        {linkToDetail ? (
+          <Link to={`/alumnos/${student.id}`} className="font-medium text-slate-800 hover:text-brand-600">
+            {student.name}
+          </Link>
+        ) : (
+          <span className="font-medium text-slate-800">{student.name}</span>
+        )}
       </td>
       <td className="py-3 pr-4">
         <LevelBadge level={student.level} />

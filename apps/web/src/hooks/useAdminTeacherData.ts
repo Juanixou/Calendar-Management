@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { MonthlySummary, NewClassPackPurchase, PackProgress, Student, TeacherProfile } from "@gestion-clases/core";
+import type { MonthlySummary, NewClassPackPurchase, PackProgress, PackTimelineEntry, Student, TeacherProfile } from "@gestion-clases/core";
 import { getAdminContainer } from "../lib/adminContainer";
 
 export function useAdminTeacherProfile(teacherId: string | undefined) {
@@ -101,6 +101,38 @@ export function useAdminPackTimeline(teacherId: string, studentId: string | unde
   });
 }
 
+/** Full (non-resolvedOnly) pack timeline for every given student — shares cache with useAdminPackTimeline. */
+export function useAdminPackTimelines(
+  teacherId: string,
+  students: Student[],
+): { student: Student; timeline: PackTimelineEntry[] | undefined }[] {
+  const results = useQueries({
+    queries: students.map((student) => ({
+      queryKey: ["admin", "packTimeline", teacherId, student.id, false],
+      queryFn: () => getAdminContainer(teacherId).services.monthlySummary.getPackTimeline(student.id),
+    })),
+  });
+
+  return students.map((student, index) => ({ student, timeline: results[index]?.data }));
+}
+
+/** Pack progress as of the end of a specific month (not resolvedOnly) — mirrors the teacher's own Resumen page. */
+export function useAdminPackProgressesForMonth(
+  teacherId: string,
+  students: Student[],
+  year: number,
+  month: number,
+): { student: Student; packProgress: PackProgress[] | undefined }[] {
+  const results = useQueries({
+    queries: students.map((student) => ({
+      queryKey: ["admin", "packProgress", teacherId, student.id, year, month, false],
+      queryFn: () => getAdminContainer(teacherId).services.monthlySummary.getPackProgress(student.id, year, month),
+    })),
+  });
+
+  return students.map((student, index) => ({ student, packProgress: results[index]?.data }));
+}
+
 export function useAdminMonthlySummaries(
   teacherId: string,
   students: Student[],
@@ -142,6 +174,7 @@ export function useAdminCreateClassPack(teacherId: string) {
       queryClient.invalidateQueries({ queryKey: ["admin", "classPacks", teacherId] });
       queryClient.invalidateQueries({ queryKey: ["admin", "monthlySummary", teacherId] });
       queryClient.invalidateQueries({ queryKey: ["admin", "packProgress", teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "packTimeline", teacherId] });
       queryClient.invalidateQueries({ queryKey: ["admin", "sessionPackLabels", teacherId] });
     },
   });
