@@ -1,0 +1,15 @@
+{
+  "name": "gestion-de-clases",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "dev:reset": "npm run dev:reset -w apps/web",
+    "build": "npm run build -w apps/web",
+    "deploy": "npm run build -w apps/web && firebase deploy --only hosting"
+  }
+}

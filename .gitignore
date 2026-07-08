@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Firebase
+.firebase/
+firebase-debug.log
+# Identifies which real Firebase project `firebase deploy` targets — kept local, see .firebaserc.example
+.firebaserc
+
+# Environment secrets (see apps/web/.env.example for the expected shape)
+.env.local
+.env*.local
+
+# Editor / tooling
+.claude/
+.vscode/
+.DS_Store
