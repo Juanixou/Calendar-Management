@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import type { DatesSetArg } from "@fullcalendar/core";
+import type { DatesSetArg, EventContentArg } from "@fullcalendar/core";
 import { GROUP_CLASS_COLOR, resolveStudentColor } from "../../lib/studentColor";
 import { groupSessions } from "../../lib/sessionGrouping";
-import { useAdminClassSessionsInRange, useAdminStudents } from "../../hooks/useAdminTeacherData";
+import { useAdminClassSessionsInRange, useAdminSessionPackLabels, useAdminStudents } from "../../hooks/useAdminTeacherData";
 
 /** Read-only calendar for admins checking a teacher's availability — no drag/drop, no click-to-edit. */
 export function AdminTeacherCalendar({ teacherId }: { teacherId: string }) {
@@ -18,6 +18,7 @@ export function AdminTeacherCalendar({ teacherId }: { teacherId: string }) {
 
   const { data: students = [] } = useAdminStudents(teacherId);
   const { data: sessions = [] } = useAdminClassSessionsInRange(teacherId, range.start, range.end);
+  const sessionPackLabels = useAdminSessionPackLabels(teacherId, students);
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
   const groups = useMemo(() => groupSessions(sessions, studentsById), [sessions, studentsById]);
@@ -27,10 +28,11 @@ export function AdminTeacherCalendar({ teacherId }: { teacherId: string }) {
       groups.map((group) => {
         const isGroup = group.students.length > 1;
         const anyCancelled = group.sessions.every((s) => s.status === "cancelled");
+        const soleStudent = !isGroup ? group.students[0] : undefined;
         const title = isGroup
           ? `Grupo: ${group.students.map((s) => s.name).join(", ")}`
-          : (group.students[0]?.name ?? "Alumno eliminado");
-        const color = isGroup ? GROUP_CLASS_COLOR : group.students[0] ? resolveStudentColor(group.students[0]) : "#94a3b8";
+          : (soleStudent?.name ?? "Alumno eliminado");
+        const color = isGroup ? GROUP_CLASS_COLOR : soleStudent ? resolveStudentColor(soleStudent) : "#94a3b8";
         return {
           id: group.key,
           title,
@@ -40,13 +42,30 @@ export function AdminTeacherCalendar({ teacherId }: { teacherId: string }) {
           borderColor: "transparent",
           textColor: "#fff",
           classNames: anyCancelled ? ["opacity-60", "line-through"] : [],
+          extendedProps: soleStudent
+            ? { level: soleStudent.level, bonoLabel: sessionPackLabels.get(group.sessions[0]!.id) }
+            : {},
         };
       }),
-    [groups],
+    [groups, sessionPackLabels],
   );
 
   function handleDatesSet(arg: DatesSetArg) {
     setRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
+  }
+
+  function renderEventContent(arg: EventContentArg) {
+    const { level, bonoLabel } = arg.event.extendedProps as { level?: string; bonoLabel?: string };
+    return (
+      <div className="overflow-hidden px-1 py-0.5 text-[11px] leading-tight">
+        <div className="truncate font-medium">{arg.event.title}</div>
+        {level ? (
+          <div className="truncate opacity-90">
+            {level} · {bonoLabel ?? "Fuera de bono"}
+          </div>
+        ) : null}
+      </div>
+    );
   }
 
   return (
@@ -64,6 +83,7 @@ export function AdminTeacherCalendar({ teacherId }: { teacherId: string }) {
         selectable={false}
         datesSet={handleDatesSet}
         events={events}
+        eventContent={renderEventContent}
         slotMinTime="07:00:00"
         slotMaxTime="23:00:00"
         buttonText={{ today: "Hoy", month: "Mes", week: "Semana", day: "Día" }}

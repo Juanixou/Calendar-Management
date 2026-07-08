@@ -11,6 +11,7 @@ function invalidateSessions(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["studentBalance"] });
   queryClient.invalidateQueries({ queryKey: ["packProgress"] });
   queryClient.invalidateQueries({ queryKey: ["packTimeline"] });
+  queryClient.invalidateQueries({ queryKey: ["sessionPackLabels"] });
 }
 
 export function useClassSessionsInRange(rangeStart: string, rangeEnd: string) {

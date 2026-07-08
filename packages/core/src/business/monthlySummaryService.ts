@@ -245,6 +245,50 @@ export class MonthlySummaryService {
       };
     });
   }
+
+  /**
+   * For every session (any status — scheduling already commits a seat), which pack it falls under
+   * and its 1-based position within it (e.g. "4/10"), in FIFO/chronological order. A session maps
+   * to `undefined` when it falls beyond every purchased pack's capacity ("Fuera de bono") — this is
+   * meant for calendar cards, so a teacher sees immediately when a class (even a future scheduled
+   * one) isn't covered by any bono, not just after the fact.
+   */
+  async getSessionPackLabels(studentId: string): Promise<Map<string, string | undefined>> {
+    const [purchases, sessions] = await Promise.all([
+      this.packs.listByStudent(studentId),
+      this.sessions.listByStudent(studentId),
+    ]);
+
+    const chronologicalSessions = [...sessions].sort(
+      (a, b) => a.start.localeCompare(b.start) || a.createdAt.localeCompare(b.createdAt),
+    );
+
+    const labels = new Map<string, string | undefined>();
+    let cumulative = 0;
+    let packIndex = 0;
+    let packStartOffset = 0;
+
+    for (const session of chronologicalSessions) {
+      const before = cumulative;
+      cumulative = round2(cumulative + durationHours(session));
+
+      while (packIndex < purchases.length && before >= round2(packStartOffset + purchases[packIndex]!.classesAmount)) {
+        packStartOffset = round2(packStartOffset + purchases[packIndex]!.classesAmount);
+        packIndex++;
+      }
+
+      if (packIndex >= purchases.length) {
+        labels.set(session.id, undefined);
+        continue;
+      }
+
+      const pack = purchases[packIndex]!;
+      const positionInPack = Math.round(round2(before - packStartOffset)) + 1;
+      labels.set(session.id, `${positionInPack}/${pack.classesAmount}`);
+    }
+
+    return labels;
+  }
 }
 
 function isBeforeOrInMonth(iso: string, year: number, month: number): boolean {

@@ -117,6 +117,23 @@ export function useAdminMonthlySummaries(
   return students.map((student, index) => ({ student, summary: results[index]?.data }));
 }
 
+/** Merges every given student's session→bono-label map into one — see `useSessionPackLabels`. */
+export function useAdminSessionPackLabels(teacherId: string, students: Student[]): Map<string, string | undefined> {
+  const results = useQueries({
+    queries: students.map((student) => ({
+      queryKey: ["admin", "sessionPackLabels", teacherId, student.id],
+      queryFn: () => getAdminContainer(teacherId).services.monthlySummary.getSessionPackLabels(student.id),
+    })),
+  });
+
+  const merged = new Map<string, string | undefined>();
+  for (const result of results) {
+    if (!result.data) continue;
+    for (const [sessionId, label] of result.data) merged.set(sessionId, label);
+  }
+  return merged;
+}
+
 export function useAdminCreateClassPack(teacherId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -125,6 +142,7 @@ export function useAdminCreateClassPack(teacherId: string) {
       queryClient.invalidateQueries({ queryKey: ["admin", "classPacks", teacherId] });
       queryClient.invalidateQueries({ queryKey: ["admin", "monthlySummary", teacherId] });
       queryClient.invalidateQueries({ queryKey: ["admin", "packProgress", teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "sessionPackLabels", teacherId] });
     },
   });
 }

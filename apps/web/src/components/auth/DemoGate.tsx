@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { User } from "firebase/auth";
 import { AuthContext, type AuthContextValue } from "./AuthGate";
 import { initLocalRepositories } from "../../lib/repositories";
@@ -17,11 +17,19 @@ const DEMO_AUTH_VALUE: AuthContextValue = { user: DEMO_USER, role: "admin" };
  */
 export function DemoGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
+  // Guards against React StrictMode's dev-only double-invocation of effects — without this,
+  // seedDemoData() (not idempotent, always creates fresh students) would run twice locally. Both
+  // invocations share the same in-flight promise instead of a plain boolean, so whichever one
+  // "survives" StrictMode's mount/cleanup/remount cycle still gets to set `ready` when it resolves.
+  const initPromise = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    initLocalRepositories();
-    seedDemoData().then(() => {
+    if (!initPromise.current) {
+      initLocalRepositories();
+      initPromise.current = seedDemoData();
+    }
+    initPromise.current.then(() => {
       if (!cancelled) setReady(true);
     });
     return () => {

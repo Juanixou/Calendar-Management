@@ -112,3 +112,23 @@ export function usePackTimelines(
 
   return students.map((student, index) => ({ student, timeline: results[index]?.data }));
 }
+
+/**
+ * Merges every given student's session→bono-label map into one (sessionId -> "4/10", or undefined
+ * for "Fuera de bono"). Meant for calendar cards, which show many students' sessions at once.
+ */
+export function useSessionPackLabels(students: Student[]): Map<string, string | undefined> {
+  const results = useQueries({
+    queries: students.map((student) => ({
+      queryKey: ["sessionPackLabels", student.id],
+      queryFn: () => services.monthlySummary.getSessionPackLabels(student.id),
+    })),
+  });
+
+  const merged = new Map<string, string | undefined>();
+  for (const result of results) {
+    if (!result.data) continue;
+    for (const [sessionId, label] of result.data) merged.set(sessionId, label);
+  }
+  return merged;
+}

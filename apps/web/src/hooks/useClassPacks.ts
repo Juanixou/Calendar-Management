@@ -20,6 +20,7 @@ export function useCreateClassPack() {
       queryClient.invalidateQueries({ queryKey: ["studentBalance"] });
       queryClient.invalidateQueries({ queryKey: ["packProgress"] });
       queryClient.invalidateQueries({ queryKey: ["packTimeline"] });
+      queryClient.invalidateQueries({ queryKey: ["sessionPackLabels"] });
     },
   });
 }
@@ -34,6 +35,7 @@ export function useDeleteClassPack() {
       queryClient.invalidateQueries({ queryKey: ["studentBalance"] });
       queryClient.invalidateQueries({ queryKey: ["packProgress"] });
       queryClient.invalidateQueries({ queryKey: ["packTimeline"] });
+      queryClient.invalidateQueries({ queryKey: ["sessionPackLabels"] });
     },
   });
 }

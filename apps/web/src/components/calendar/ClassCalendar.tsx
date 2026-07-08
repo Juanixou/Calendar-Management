@@ -3,11 +3,12 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin, { type DateClickArg } from "@fullcalendar/interaction";
-import type { EventDropArg, EventClickArg, DatesSetArg } from "@fullcalendar/core";
+import type { EventContentArg, EventDropArg, EventClickArg, DatesSetArg } from "@fullcalendar/core";
 import { GROUP_CLASS_COLOR, resolveStudentColor } from "../../lib/studentColor";
 import { groupSessions } from "../../lib/sessionGrouping";
 import { useStudents } from "../../hooks/useStudents";
 import { useClassSessionsInRange, useScheduleClassOccurrences, useMoveClass, useCompleteClass, useCancelClass, useDeleteClass, useUpdateSessionNotes } from "../../hooks/useClassSessions";
+import { useSessionPackLabels } from "../../hooks/useMonthlySummary";
 import { NewSessionDialog } from "./NewSessionDialog";
 import { SessionDetailsDialog, type SessionEntry } from "./SessionDetailsDialog";
 
@@ -22,6 +23,7 @@ export function ClassCalendar() {
 
   const { data: students = [] } = useStudents();
   const { data: sessions = [] } = useClassSessionsInRange(range.start, range.end);
+  const sessionPackLabels = useSessionPackLabels(students);
 
   const scheduleClass = useScheduleClassOccurrences();
   const moveClass = useMoveClass();
@@ -55,10 +57,11 @@ export function ClassCalendar() {
       groups.map((group) => {
         const isGroup = group.students.length > 1;
         const anyCancelled = group.sessions.every((s) => s.status === "cancelled");
+        const soleStudent = !isGroup ? group.students[0] : undefined;
         const title = isGroup
           ? `Grupo: ${group.students.map((s) => s.name).join(", ")}`
-          : (group.students[0]?.name ?? "Alumno eliminado");
-        const color = isGroup ? GROUP_CLASS_COLOR : group.students[0] ? resolveStudentColor(group.students[0]) : "#94a3b8";
+          : (soleStudent?.name ?? "Alumno eliminado");
+        const color = isGroup ? GROUP_CLASS_COLOR : soleStudent ? resolveStudentColor(soleStudent) : "#94a3b8";
         return {
           id: group.key,
           title,
@@ -68,10 +71,27 @@ export function ClassCalendar() {
           borderColor: "transparent",
           textColor: "#fff",
           classNames: anyCancelled ? ["opacity-60", "line-through"] : [],
+          extendedProps: soleStudent
+            ? { level: soleStudent.level, bonoLabel: sessionPackLabels.get(group.sessions[0]!.id) }
+            : {},
         };
       }),
-    [groups],
+    [groups, sessionPackLabels],
   );
+
+  function renderEventContent(arg: EventContentArg) {
+    const { level, bonoLabel } = arg.event.extendedProps as { level?: string; bonoLabel?: string };
+    return (
+      <div className="overflow-hidden px-1 py-0.5 text-[11px] leading-tight">
+        <div className="truncate font-medium">{arg.event.title}</div>
+        {level ? (
+          <div className="truncate opacity-90">
+            {level} · {bonoLabel ?? "Fuera de bono"}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   function handleDatesSet(arg: DatesSetArg) {
     setRange({ start: arg.start.toISOString(), end: arg.end.toISOString() });
@@ -131,6 +151,7 @@ export function ClassCalendar() {
         eventDrop={handleEventDrop}
         datesSet={handleDatesSet}
         events={events}
+        eventContent={renderEventContent}
         slotMinTime="07:00:00"
         slotMaxTime="23:00:00"
         buttonText={{ today: "Hoy", month: "Mes", week: "Semana", day: "Día" }}
