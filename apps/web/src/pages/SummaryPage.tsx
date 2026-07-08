@@ -24,8 +24,8 @@ export function SummaryPage() {
   });
 
   const summaries = useMonthlySummaries(students, monthCursor.year, monthCursor.month);
-  const packProgresses = usePackProgresses(students, monthCursor.year, monthCursor.month);
-  const packTimelines = usePackTimelines(students);
+  const packProgresses = usePackProgresses(students, monthCursor.year, monthCursor.month, true);
+  const packTimelines = usePackTimelines(students, true);
   const rows = summaries.map(({ student, summary }, index) => ({
     student,
     summary,

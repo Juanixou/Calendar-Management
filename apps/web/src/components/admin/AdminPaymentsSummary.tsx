@@ -26,8 +26,8 @@ export function AdminPaymentsSummary({ teacherId }: { teacherId: string }) {
   });
 
   const summaries = useAdminMonthlySummaries(teacherId, students, monthCursor.year, monthCursor.month);
-  const packProgresses = useAdminPackProgressesForMonth(teacherId, students, monthCursor.year, monthCursor.month);
-  const packTimelines = useAdminPackTimelines(teacherId, students);
+  const packProgresses = useAdminPackProgressesForMonth(teacherId, students, monthCursor.year, monthCursor.month, true);
+  const packTimelines = useAdminPackTimelines(teacherId, students, true);
   const rows = summaries.map(({ student, summary }, index) => ({
     student,
     summary,

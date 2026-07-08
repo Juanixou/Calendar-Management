@@ -79,11 +79,12 @@ export function usePackProgresses(
   students: Student[],
   year: number,
   month: number,
+  resolvedOnly?: boolean,
 ): { student: Student; packProgress: PackProgress[] | undefined }[] {
   const results = useQueries({
     queries: students.map((student) => ({
-      queryKey: ["packProgress", student.id, year, month],
-      queryFn: () => services.monthlySummary.getPackProgress(student.id, year, month),
+      queryKey: ["packProgress", student.id, year, month, resolvedOnly ?? false],
+      queryFn: () => services.monthlySummary.getPackProgress(student.id, year, month, { resolvedOnly }),
     })),
   });
 
@@ -102,11 +103,12 @@ export function usePackTimeline(studentId: string | undefined, resolvedOnly?: bo
 /** Fetches pack timelines for every given student in one go (shares cache with usePackTimeline). */
 export function usePackTimelines(
   students: Student[],
+  resolvedOnly?: boolean,
 ): { student: Student; timeline: PackTimelineEntry[] | undefined }[] {
   const results = useQueries({
     queries: students.map((student) => ({
-      queryKey: ["packTimeline", student.id],
-      queryFn: () => services.monthlySummary.getPackTimeline(student.id),
+      queryKey: ["packTimeline", student.id, resolvedOnly ?? false],
+      queryFn: () => services.monthlySummary.getPackTimeline(student.id, { resolvedOnly }),
     })),
   });
 

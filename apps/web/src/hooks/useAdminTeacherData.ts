@@ -101,32 +101,37 @@ export function useAdminPackTimeline(teacherId: string, studentId: string | unde
   });
 }
 
-/** Full (non-resolvedOnly) pack timeline for every given student — shares cache with useAdminPackTimeline. */
+/** Pack timeline for every given student — shares cache with useAdminPackTimeline. */
 export function useAdminPackTimelines(
   teacherId: string,
   students: Student[],
+  resolvedOnly?: boolean,
 ): { student: Student; timeline: PackTimelineEntry[] | undefined }[] {
   const results = useQueries({
     queries: students.map((student) => ({
-      queryKey: ["admin", "packTimeline", teacherId, student.id, false],
-      queryFn: () => getAdminContainer(teacherId).services.monthlySummary.getPackTimeline(student.id),
+      queryKey: ["admin", "packTimeline", teacherId, student.id, resolvedOnly ?? false],
+      queryFn: () => getAdminContainer(teacherId).services.monthlySummary.getPackTimeline(student.id, { resolvedOnly }),
     })),
   });
 
   return students.map((student, index) => ({ student, timeline: results[index]?.data }));
 }
 
-/** Pack progress as of the end of a specific month (not resolvedOnly) — mirrors the teacher's own Resumen page. */
+/** Pack progress as of the end of a specific month — mirrors the teacher's own Resumen page. */
 export function useAdminPackProgressesForMonth(
   teacherId: string,
   students: Student[],
   year: number,
   month: number,
+  resolvedOnly?: boolean,
 ): { student: Student; packProgress: PackProgress[] | undefined }[] {
   const results = useQueries({
     queries: students.map((student) => ({
-      queryKey: ["admin", "packProgress", teacherId, student.id, year, month, false],
-      queryFn: () => getAdminContainer(teacherId).services.monthlySummary.getPackProgress(student.id, year, month),
+      queryKey: ["admin", "packProgress", teacherId, student.id, year, month, resolvedOnly ?? false],
+      queryFn: () =>
+        getAdminContainer(teacherId).services.monthlySummary.getPackProgress(student.id, year, month, {
+          resolvedOnly,
+        }),
     })),
   });
 
